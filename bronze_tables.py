@@ -1,26 +1,27 @@
-from pyspark.sql.functions import col, sum, broadcast
+clientes    = spark.table("default.clientes");
+itens_venda = spark.table("default.itens_venda");
+produtos    = spark.table("default.produtos");
+vendas      = spark.table("default.vendas");
+vendedores  = spark.table("default.vendedores");
 
-itens = spark.read.parquet(
-    "/Volumes/workspace/default/silver/itens"
-);
+clientes.write \
+        .mode("overwrite") \
+        .parquet("/Volumes/workspace/default/bronze/clientes");
 
-produtos = spark.read.parquet(
-    "/Volumes/workspace/default/silver/produtos"
-);
+itens_venda.write \
+        .mode("overwrite") \
+        .parquet("/Volumes/workspace/default/bronze/itens");
 
-faturamento_por_categoria = (
-    itens.join(broadcast(produtos), produtos.produto_id == itens.produto_id, "inner")
-    .select("categoria", "quantidade", 'preco')
-);
+produtos.write \
+        .mode("overwrite") \
+        .parquet("/Volumes/workspace/default/bronze/produtos");
 
-faturamento_por_categoria = faturamento_por_categoria.withColumn("total_venda", col("quantidade") * col("preco"));
+vendas.write \
+      .mode("overwrite") \
+      .parquet("/Volumes/workspace/default/bronze/vendas");
 
-faturamento_por_categoria = faturamento_por_categoria.groupBy("categoria") \
-                            .agg(sum("total_venda"));
 
-faturamento_por_categoria.write \
-     .mode("overwrite") \
-     .parquet("/Volumes/workspace/default/gold/faturamento_por_categoria");
-                                       
+vendedores.write \
+          .mode("overwrite") \
+          .parquet("/Volumes/workspace/default/bronze/vendedores");
 
-display(faturamento_por_categoria);
