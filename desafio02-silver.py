@@ -1,25 +1,15 @@
-from pyspark.sql.functions import col, sum
-
-itens = spark.read.parquet(
-    "/Volumes/workspace/default/bronze/itens"
+vendas = spark.read.parquet(
+    "/Volumes/workspace/default/bronze/vendas"
 );
 
-produtos = spark.read.parquet(
-    "/Volumes/workspace/default/bronze/produtos"
+clientes = spark.read.parquet(
+    "/Volumes/workspace/default/bronze/clientes"
 );
 
-itens = itens.dropDuplicates();
-itens = itens.na.drop(subset=["valor_unitario"]); 
-itens =  itens.na.drop(subset=["quantidade"]); 
+vendas.write \
+      .mode("overwrite") \
+      .parquet("/Volumes/workspace/default/silver/vendas");
 
-produtos = produtos.dropDuplicates();
-produtos = produtos.na.drop(subset=["categoria"]);
-produtos = produtos.na.drop(subset=["preco"]);
-
-itens.write \
-     .mode("overwrite") \
-     .parquet("/Volumes/workspace/default/silver/itens");
-
-produtos.write \
-     .mode("overwrite") \
-     .parquet("/Volumes/workspace/default/silver/produtos");
+clientes.write \
+      .mode("overwrite") \
+      .parquet("/Volumes/workspace/default/silver/clientes");

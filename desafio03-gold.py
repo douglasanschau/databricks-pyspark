@@ -1,38 +1,27 @@
 from pyspark.sql.functions import col, sum, broadcast
 
-clientes = spark.read.parquet(
-    "/Volumes/workspace/default/silver/clientes"
-);
-
 itens = spark.read.parquet(
     "/Volumes/workspace/default/silver/itens"
 );
 
-vendas = spark.read.parquet(
-    "/Volumes/workspace/default/silver/vendas"
+produtos = spark.read.parquet(
+    "/Volumes/workspace/default/silver/produtos"
 );
 
-cliente_mais_gastou = (
-    itens.join(vendas, vendas.venda_id == itens.venda_id, "inner")
-    .join(broadcast(clientes).alias("c"), clientes.cliente_id == vendas.cliente_id, "inner")
-    .select("c.cliente_id", "nome", "quantidade", "valor_unitario")
+produto_mais_vendido = (
+    itens.join(broadcast(produtos).alias("p"), produtos.produto_id == itens.produto_id, "INNER")
+    .select("p.produto_id", "quantidade")
 );
 
-cliente_mais_gastou = cliente_mais_gastou.withColumn("valor_total_gasto", col("quantidade") * col("valor_unitario"));
+produto_mais_vendido = produto_mais_vendido.groupBy("produto_id") \
+                                           .agg(
+                                               sum("quantidade").alias("total_vendas")
+                                           );
 
-cliente_mais_gastou = cliente_mais_gastou.groupBy("cliente_id") \
-                                         .agg(
-                                             sum("valor_total_gasto").alias("total_gasto")
-                                         );
+produto_mais_vendido = produto_mais_vendido.orderBy(col("total_vendas").desc());
 
-cliente_mais_gastou = cliente_mais_gastou.orderBy(col('total_gasto').desc());
-
-cliente_mais_gastou.write \
-                   .mode("overwrite") \
-                   .parquet("/Volumes/workspace/default/gold/cliente_mais_gastou");
-
-
-
-
+produto_mais_vendido.write \
+                    .mode("overwrite") \
+                    .parquet("/Volumes/workspace/default/gold/produto_mais_vendido");
 
 

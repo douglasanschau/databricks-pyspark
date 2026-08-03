@@ -1,27 +1,25 @@
-clientes    = spark.table("default.clientes");
-itens_venda = spark.table("default.itens_venda");
-produtos    = spark.table("default.produtos");
-vendas      = spark.table("default.vendas");
-vendedores  = spark.table("default.vendedores");
+from pyspark.sql.functions import col, sum
 
-clientes.write \
-        .mode("overwrite") \
-        .parquet("/Volumes/workspace/default/bronze/clientes");
+itens = spark.read.parquet(
+    "/Volumes/workspace/default/bronze/itens"
+);
 
-itens_venda.write \
-        .mode("overwrite") \
-        .parquet("/Volumes/workspace/default/bronze/itens");
+produtos = spark.read.parquet(
+    "/Volumes/workspace/default/bronze/produtos"
+);
+
+itens = itens.dropDuplicates();
+itens = itens.na.drop(subset=["valor_unitario"]); 
+itens =  itens.na.drop(subset=["quantidade"]); 
+
+produtos = produtos.dropDuplicates();
+produtos = produtos.na.drop(subset=["categoria"]);
+produtos = produtos.na.drop(subset=["preco"]);
+
+itens.write \
+     .mode("overwrite") \
+     .parquet("/Volumes/workspace/default/silver/itens");
 
 produtos.write \
-        .mode("overwrite") \
-        .parquet("/Volumes/workspace/default/bronze/produtos");
-
-vendas.write \
-      .mode("overwrite") \
-      .parquet("/Volumes/workspace/default/bronze/vendas");
-
-
-vendedores.write \
-          .mode("overwrite") \
-          .parquet("/Volumes/workspace/default/bronze/vendedores");
-
+     .mode("overwrite") \
+     .parquet("/Volumes/workspace/default/silver/produtos");
